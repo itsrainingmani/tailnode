@@ -157,6 +157,10 @@ func openNewTerminalWithCommand(ctx context.Context) error {
 	switch runtime.GOOS {
 	case "windows":
 		cmd = exec.CommandContext(ctx, "cmd", "/k", "pause")
+	case "darwin": // macOS
+		cmd = exec.CommandContext(ctx, "open", "-a", "Terminal")
+	case "linux", "freebsd", "netbsd", "openbsd": // Unix-like OSes
+		cmd = exec.CommandContext(ctx, "x-terminal-emulator", "-e", "bash -c 'echo Press Enter to continue; read line'")
 	default:
 		return fmt.Errorf("unsupported platform")
 	}
