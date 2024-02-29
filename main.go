@@ -21,9 +21,57 @@ var (
 	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
 	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
 	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
+	countries         = []string{
+		"Albania",
+		"Australia",
+		"Austria",
+		"Belgium",
+		"Brazil",
+		"Bulgaria",
+		"Canada",
+		"Colombia",
+		"Croatia",
+		"Czech Republic",
+		"Denmark",
+		"Estonia",
+		"Finland",
+		"France",
+		"Germany",
+		"Greece",
+		"Hong Kong",
+		"Hungary",
+		"Ireland",
+		"Israel",
+		"Italy",
+		"Japan",
+		"Latvia",
+		"Mexico",
+		"Netherlands",
+		"New Zealand",
+		"Norway",
+		"Poland",
+		"Portugal",
+		"Romania",
+		"Serbia",
+		"Singapore",
+		"Slovakia",
+		"South Africa",
+		"Spain",
+		"Sweden",
+		"Switzerland",
+		"UK",
+		"USA",
+		"Ukraine",
+	}
 )
 
 type item string
+
+type CityInfo struct {
+	City     string
+	Hostname string
+	IP       string
+}
 
 func (i item) FilterValue() string { return "" }
 
@@ -48,6 +96,12 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	}
 
 	fmt.Fprint(w, fn(str))
+}
+
+func changeExitNode(ctx context.Context, exitNode string) error {
+	cmd := exec.CommandContext(ctx, "tailscale", "set", "--exit-node="+exitNode)
+
+	return cmd.Run()
 }
 
 // Define the model which holds the application state
@@ -112,25 +166,22 @@ func openNewTerminalWithCommand(ctx context.Context) error {
 	return cmd.Run()
 }
 
-func main() {
-	items := []list.Item{
-		item("New York"),
-		item("San Francisco"),
-		item("Los Angeles"),
-		item("Chicago"),
-		item("Atlanta"),
+func createCountriesList() []list.Item {
+	var items []list.Item
+	for _, country := range countries {
+		items = append(items, item(country))
 	}
-	const defaultWidth = 20
+	return items
+}
 
-	l := list.New(items, itemDelegate{}, defaultWidth, 14)
-	l.Title = "Tailscale Exit Nodes"
-	l.SetShowStatusBar(false)
-	l.SetFilteringEnabled(false)
-	l.Styles.Title = titleStyle
-	l.Styles.PaginationStyle = paginationStyle
-	l.Styles.HelpStyle = helpStyle
-
-	m := model{list: l}
+func main() {
+	items := createCountriesList()
+	m := model{list: list.New(items, itemDelegate{}, 20, 30)}
+	m.list.Title = "Tailscale Exit Nodes"
+	m.list.SetShowStatusBar(false)
+	m.list.Styles.Title = titleStyle
+	m.list.Styles.PaginationStyle = paginationStyle
+	m.list.Styles.HelpStyle = helpStyle
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	err := openNewTerminalWithCommand(ctx)
