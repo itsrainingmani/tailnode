@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -125,6 +126,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
 			m.quitting = true
+			time.Sleep(1 * time.Second)
 			return m, tea.Quit
 
 		case "enter":
@@ -132,6 +134,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if ok {
 				m.choice = string(i)
 			}
+			time.Sleep(1 * time.Second)
 			return m, tea.Quit
 		}
 	}
@@ -158,7 +161,7 @@ func openNewTerminalWithCommand(ctx context.Context) error {
 	case "windows":
 		cmd = exec.CommandContext(ctx, "cmd", "/k", "pause")
 	case "darwin": // macOS
-		cmd = exec.CommandContext(ctx, "open", "-a", "Terminal")
+		cmd = exec.CommandContext(ctx, "open", "-a", "iTerm")
 	case "linux", "freebsd", "netbsd", "openbsd": // Unix-like OSes
 		cmd = exec.CommandContext(ctx, "x-terminal-emulator", "-e", "bash -c 'echo Press Enter to continue; read line'")
 	default:
@@ -180,7 +183,7 @@ func createCountriesList() []list.Item {
 
 func main() {
 	items := createCountriesList()
-	m := model{list: list.New(items, itemDelegate{}, 20, 30)}
+	m := model{list: list.New(items, itemDelegate{}, 20, 40)}
 	m.list.Title = "Tailscale Exit Nodes"
 	m.list.SetShowStatusBar(false)
 	m.list.Styles.Title = titleStyle
