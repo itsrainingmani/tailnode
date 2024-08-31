@@ -64,6 +64,59 @@ var (
 		"USA",
 		"Ukraine",
 	}
+
+	CountryCityMap = map[string][]string{
+		"Albania":        {"Tirana"},
+		"Australia":      {"Adelaide", "Brisbane", "Melbourne", "Perth", "Sydney"},
+		"Austria":        {"Vienna"},
+		"Belgium":        {"Brussels"},
+		"Brazil":         {"Sao Paulo"},
+		"Bulgaria":       {"Sofia"},
+		"Canada":         {"Calgary", "Montreal", "Toronto", "Vancouver"},
+		"Chile":          {"Santiago"},
+		"Colombia":       {"Bogota"},
+		"Croatia":        {"Zagreb"},
+		"Czech Republic": {"Prague"},
+		"Denmark":        {"Copenhagen"},
+		"Estonia":        {"Tallinn"},
+		"Finland":        {"Helsinki"},
+		"France":         {"Bordeaux", "Marseille", "Paris"},
+		"Germany":        {"Berlin", "Dusseldorf", "Frankfurt"},
+		"Greece":         {"Athens"},
+		"Hong Kong":      {"Hong Kong"},
+		"Hungary":        {"Budapest"},
+		"Indonesia":      {"Jakarta"},
+		"Ireland":        {"Dublin"},
+		"Israel":         {"Tel Aviv"},
+		"Italy":          {"Milan", "Palermo"},
+		"Japan":          {"Osaka", "Tokyo"},
+		"Latvia":         {"Riga"},
+		"Mexico":         {"Queretaro"},
+		"Netherlands":    {"Amsterdam"},
+		"New Zealand":    {"Auckland"},
+		"Norway":         {"Oslo", "Stavanger"},
+		"Peru":           {"Lima"},
+		"Poland":         {"Warsaw"},
+		"Portugal":       {"Lisbon"},
+		"Romania":        {"Bucharest"},
+		"Serbia":         {"Belgrade"},
+		"Singapore":      {"Singapore"},
+		"Slovakia":       {"Bratislava"},
+		"Slovenia":       {"Ljubljana"},
+		"South Africa":   {"Johannesburg"},
+		"Spain":          {"Barcelona", "Madrid", "Valencia"},
+		"Sweden":         {"Gothenburg", "Malmo", "Stockholm"},
+		"Switzerland":    {"Zurich"},
+		"Thailand":       {"Bangkok"},
+		"Turkey":         {"Istanbul"},
+		"UK":             {"Glasgow", "London", "Manchester"},
+		"USA": {
+			"Ashburn", "Atlanta", "Boston", "Chicago", "Dallas", "Denver",
+			"Detroit", "Houston", "LosAngeles", "McAllen", "Miami", "NewYork",
+			"Phoenix", "Raleigh", "SaltLakeCity", "SanJose", "Seattle", "Secaucus",
+		},
+		"Ukraine": {"Kyiv"},
+	}
 )
 
 type item string
@@ -107,9 +160,11 @@ func changeExitNode(ctx context.Context, exitNode string) error {
 
 // Define the model which holds the application state
 type model struct {
-	list     list.Model
-	choice   string
-	quitting bool
+	countryList list.Model
+	cityList    list.Model
+	state       string // "country" or "city"
+	choice      string
+	quitting    bool
 }
 
 func (m model) Init() tea.Cmd {
@@ -119,7 +174,8 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.list.SetWidth(msg.Width)
+		m.countryList.SetWidth(msg.Width)
+		m.cityList.SetWidth(msg.Width)
 		return m, nil
 
 	case tea.KeyMsg:
@@ -130,20 +186,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "enter":
-			i, ok := m.list.SelectedItem().(item)
-			if ok {
-				m.choice = string(i)
+			if m.state == "country" {
+				country := string(m.countryList.SelectedItem().(item))
+				m.cityList = list.New(createCityList(country), itemDelegate{}, 20, 40)
+				m.state = "city"
+				return m, nil
+			} else if m.state == "city" {
+				city := string(m.cityList.SelectedItem().(item))
+				m.choice = city
+				time.Sleep(1 * time.Second)
+				return m, tea.Quit
 			}
-			time.Sleep(1 * time.Second)
-			return m, tea.Quit
 		}
 	}
 
 	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
+	if m.state == "country" {
+		m.countryList, cmd = m.countryList.Update(msg)
+	} else {
+		m.cityList, cmd = m.cityList.Update(msg)
+	}
 	return m, cmd
 }
-
 func (m model) View() string {
 	if m.choice != "" {
 		return quitTextStyle.Render(fmt.Sprintf("%s? Sounds good to me.", m.choice))
@@ -151,9 +215,11 @@ func (m model) View() string {
 	if m.quitting {
 		return quitTextStyle.Render("Not interested? That's cool")
 	}
-	return "\n" + m.list.View()
+	if m.state == "country" {
+		return "\n" + m.countryList.View()
+	}
+	return "\n" + m.cityList.View()
 }
-
 func openNewTerminalWithCommand(ctx context.Context) error {
 	var cmd *exec.Cmd
 
@@ -181,14 +247,26 @@ func createCountriesList() []list.Item {
 	return items
 }
 
+func createCityList(country string) []list.Item {
+	var items []list.Item
+	for _, city := range CountryCityMap[country] {
+		items = append(items, item(city))
+	}
+	return items
+}
+
 func main() {
-	items := createCountriesList()
-	m := model{list: list.New(items, itemDelegate{}, 20, 40)}
-	m.list.Title = "Tailscale Exit Nodes"
-	m.list.SetShowStatusBar(false)
-	m.list.Styles.Title = titleStyle
-	m.list.Styles.PaginationStyle = paginationStyle
-	m.list.Styles.HelpStyle = helpStyle
+	countryItems := createCountriesList()
+	m := model{
+		countryList: list.New(countryItems, itemDelegate{}, 20, 40),
+		state:       "country",
+	}
+	m.countryList.Title = "Select a Country"
+	m.countryList.SetShowStatusBar(false)
+	m.countryList.Styles.Title = titleStyle
+	m.countryList.Styles.PaginationStyle = paginationStyle
+	m.countryList.Styles.HelpStyle = helpStyle
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	err := openNewTerminalWithCommand(ctx)
