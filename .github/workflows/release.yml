@@ -1,5 +1,7 @@
 # .github/workflows/release.yaml
 
+name: Tailnode Windows Binary
+
 on:
   release:
     types: [created]
@@ -16,12 +18,7 @@ jobs:
       matrix:
         # build and publish in parallel: windows/386, windows/amd64
         goos: [windows]
-        goarch: ['386', amd64, arm64]
-        exclude:
-          - goarch: '386'
-            goos: darwin
-          - goarch: arm64
-            goos: windows
+        goarch: ['386', amd64]
     steps:
       - uses: actions/checkout@v4
       - uses: wangyoucao577/go-release-action@v1
@@ -30,4 +27,5 @@ jobs:
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           binary_name: 'tailnode'
-          extra_files: LICENSE README.md
+          compress_assets: 'OFF'
+          executable_compression: 'upx'
