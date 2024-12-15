@@ -2,6 +2,8 @@
 
 BubbleTea TUI to manage Tailscale/Mullvad VPN Exit Nodes
 
+<h3>⚠️ As of Dec 15th, 2024, The Windows GUI has been updated to use the same country-based exit node display and this TUI is no longer needed </h3>
+
 ## Why?
 
 Currently, the Tailscale Windows GUI forces you to scroll through a giant list of Mullvad VPN hostnames in order to choose an exit node. This user experience is subpar compared to other OS's and is being actively worked on by the Tailscale team.
